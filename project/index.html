@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Study Planner</title>
+</head>
+<body>
+    <h1>Study Planner</h1>
+
+    <input type="text" id="taskName" placeholder="Task Name">
+    <input type="date" id="dueDate">
+    <input type="text" id="subject" placeholder="Subject">
+    <button onclick="addTask()">Add Task</button>
+
+    <h2>Tasks:</h2>
+    <ul id="taskList"></ul>
+
+    <script>
+        function getTasks() {
+            fetch('/api/tasks')
+                .then(response => response.json())
+                .then(tasks => {
+                    const taskList = document.getElementById('taskList');
+                    taskList.innerHTML = ''; // Clear existing tasks
+                    tasks.forEach((task, index) => {
+                        const li = document.createElement('li');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.checked = task.completed;
+                        checkbox.onchange = () => updateTask(index, checkbox.checked); // Update on change
+                        li.textContent = `${task.name} (${task.subject}) - Due: ${task.dueDate} `;
+                        li.prepend(checkbox); // Add checkbox to list item
+                        taskList.appendChild(li);
+                    });
+                });
+        }
+
+        function addTask() {
+            const taskName = document.getElementById('taskName').value;
+            const dueDate = document.getElementById('dueDate').value;
+            const subject = document.getElementById('subject').value;
+
+            fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: taskName, dueDate: dueDate, subject: subject })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Task added") {
+                    getTasks(); // Refresh task list
+                    document.getElementById('taskName').value = ''; // Clear input fields
+                    document.getElementById('dueDate').value = '';
+                    document.getElementById('subject').value = '';
+
+                } else {
+                    alert(data.error); // Show error message
+                }
+            });
+        }
+
+        function updateTask(taskId, completed) {
+          fetch(`/api/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ completed: completed })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.message === "Task updated") {
+              getTasks(); // Refresh the task list
+            } else {
+              alert(data.error);
+            }
+          });
+        }
+
+
+        getTasks(); // Initial task loading
+    </script>
+</body>
+</html>
